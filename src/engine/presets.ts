@@ -1,0 +1,332 @@
+import type { OccasionType } from '../schemas/plan.js';
+import type { WeightInput } from './budget.js';
+
+/** @fileoverview All occasion presets — adding a new occasion = data + tests, zero new code. */
+
+export interface OccasionPreset {
+  type:          OccasionType;
+  label:         string;
+  description:   string;
+  accentColor:   string;
+  illustration:  string;       // SVG icon key
+  weights:       ReadonlyArray<WeightInput>;
+  bounds:        Readonly<Record<string, { min: number; max: number }>>;
+  perGuestKeys:  ReadonlyArray<string>;
+  taskTemplates: ReadonlyArray<TaskTemplate>;
+  vendorKeys:    ReadonlyArray<string>;
+  extras:        ReadonlyArray<{ key: string; label: string; defaultRupees: number }>;
+}
+
+export interface TaskTemplate {
+  id:           string;
+  title:        string;
+  phase:        1 | 2 | 3 | 4 | 5;
+  leadTimeDays: number;
+  dependsOn:    ReadonlyArray<string>;
+  categoryKey:  string;
+  essential:    boolean;
+}
+
+// ── Wedding ───────────────────────────────────────────────────────────────────
+
+const WEDDING: OccasionPreset = {
+  type: 'wedding', label: 'Wedding', description: 'Shaadi, Kalyanam, Vivah — every tradition',
+  accentColor: '#B3261E', illustration: 'wedding',
+  weights: [
+    { key: 'venue',             label: 'Venue',              percent: 28, priority: 'normal' },
+    { key: 'catering',          label: 'Catering',           percent: 30, priority: 'normal' },
+    { key: 'decor',             label: 'Decor & Flowers',    percent: 12, priority: 'normal' },
+    { key: 'photography',       label: 'Photography & Video',percent:  9, priority: 'normal' },
+    { key: 'entertainment',     label: 'Music & Entertainmt',percent:  4, priority: 'normal' },
+    { key: 'attire',            label: 'Attire & Jewellery', percent:  6, priority: 'normal' },
+    { key: 'invitations',       label: 'Invitations & Gifts',percent:  3, priority: 'normal' },
+    { key: 'rituals',           label: 'Rituals & Priest',   percent:  3, priority: 'normal' },
+    { key: 'contingency',       label: 'Contingency',        percent:  5, priority: 'normal' },
+  ],
+  bounds: {
+    venue:          { min: 15, max: 40 }, catering:    { min: 20, max: 45 },
+    decor:          { min:  5, max: 20 }, photography: { min:  3, max: 15 },
+    entertainment:  { min:  2, max: 12 }, attire:      { min:  2, max: 15 },
+    invitations:    { min:  1, max:  8 }, rituals:     { min:  1, max:  6 },
+    contingency:    { min:  5, max: 15 },
+  },
+  perGuestKeys: ['catering', 'invitations'],
+  vendorKeys: ['caterer','decorator','photographer','videographer','priest','dj','mehendi'],
+  taskTemplates: [
+    { id:'w1',  title:'Fix venue',                        phase:1, leadTimeDays:180, dependsOn:[],     categoryKey:'venue',         essential:true  },
+    { id:'w2',  title:'Confirm priest & muhurtham date',  phase:1, leadTimeDays:150, dependsOn:['w1'], categoryKey:'rituals',        essential:true  },
+    { id:'w3',  title:'Book caterer',                     phase:1, leadTimeDays:120, dependsOn:['w1'], categoryKey:'catering',       essential:true  },
+    { id:'w4',  title:'Book photographer & videographer', phase:1, leadTimeDays:120, dependsOn:[],     categoryKey:'photography',    essential:true  },
+    { id:'w5',  title:'Book decorator',                   phase:2, leadTimeDays:90,  dependsOn:['w1'], categoryKey:'decor',          essential:true  },
+    { id:'w6',  title:'Send invitations',                 phase:2, leadTimeDays:60,  dependsOn:['w2'], categoryKey:'invitations',    essential:true  },
+    { id:'w7',  title:'Bride & groom attire fitting',     phase:2, leadTimeDays:60,  dependsOn:[],     categoryKey:'attire',         essential:true  },
+    { id:'w8',  title:'Finalise menu with caterer',       phase:2, leadTimeDays:45,  dependsOn:['w3'], categoryKey:'catering',       essential:true  },
+    { id:'w9',  title:'Arrange transport for guests',     phase:3, leadTimeDays:30,  dependsOn:[],     categoryKey:'venue',          essential:false },
+    { id:'w10', title:'Book mehndi artist',               phase:3, leadTimeDays:30,  dependsOn:[],     categoryKey:'entertainment',  essential:false },
+    { id:'w11', title:'Confirm head counts with caterer', phase:3, leadTimeDays:14,  dependsOn:['w8'], categoryKey:'catering',       essential:true  },
+    { id:'w12', title:'Décor dry-run & layout sign-off',  phase:3, leadTimeDays:14,  dependsOn:['w5'], categoryKey:'decor',          essential:true  },
+    { id:'w13', title:'Final payment to all vendors',     phase:4, leadTimeDays:7,   dependsOn:['w11','w12'], categoryKey:'contingency', essential:true },
+    { id:'w14', title:'Day-of coordinator briefing',      phase:5, leadTimeDays:0,   dependsOn:['w13'],       categoryKey:'venue',      essential:true  },
+  ],
+  extras: [
+    { key:'dj',           label:'DJ',                    defaultRupees:25_000 },
+    { key:'mehndi',       label:'Mehndi artist',         defaultRupees:15_000 },
+    { key:'entry_dance',  label:'Entry dance choreography', defaultRupees:20_000 },
+    { key:'chenda_melam', label:'Chenda Melam (Kerala)', defaultRupees:18_000 },
+  ],
+};
+
+// ── Birthday (kids) ───────────────────────────────────────────────────────────
+
+const BIRTHDAY_KIDS: OccasionPreset = {
+  type: 'birthday_kids', label: "Kids' Birthday", description: 'Sweet first celebrations',
+  accentColor: '#0F5C5C', illustration: 'birthday_kids',
+  weights: [
+    { key: 'venue',       label: 'Venue',           percent: 20 },
+    { key: 'catering',    label: 'Catering & Cake', percent: 30 },
+    { key: 'decor',       label: 'Décor & Balloons',percent: 18 },
+    { key: 'entertainer', label: 'Entertainment',   percent: 15 },
+    { key: 'return_gifts',label: 'Return Gifts',    percent: 10 },
+    { key: 'contingency', label: 'Contingency',     percent:  7 },
+  ],
+  bounds: {
+    venue:        { min: 10, max: 35 }, catering:    { min: 20, max: 45 },
+    decor:        { min:  5, max: 25 }, entertainer: { min:  5, max: 25 },
+    return_gifts: { min:  3, max: 15 }, contingency: { min:  5, max: 15 },
+  },
+  perGuestKeys: ['catering', 'return_gifts'],
+  vendorKeys: ['caterer','decorator','entertainer','photographer'],
+  taskTemplates: [
+    { id:'bk1',  title:'Book party hall / venue',                 phase:1, leadTimeDays:60, dependsOn:[],      categoryKey:'venue',       essential:true  },
+    { id:'bk2',  title:'Finalize birthday theme & balloon concept',phase:1, leadTimeDays:50, dependsOn:['bk1'],categoryKey:'decor',       essential:false },
+    { id:'bk3',  title:'Book entertainer / magician / mascot',    phase:1, leadTimeDays:45, dependsOn:[],      categoryKey:'entertainer', essential:false },
+    { id:'bk4',  title:'Book kid-friendly photographer',          phase:1, leadTimeDays:40, dependsOn:[],      categoryKey:'entertainer', essential:false },
+    { id:'bk5',  title:'Design and order custom cake',            phase:2, leadTimeDays:30, dependsOn:['bk2'], categoryKey:'catering',    essential:true  },
+    { id:'bk6',  title:'Dispatch invitations',                    phase:2, leadTimeDays:25, dependsOn:['bk1'], categoryKey:'venue',       essential:true  },
+    { id:'bk7',  title:'Purchase return gifts & party favors',    phase:2, leadTimeDays:18, dependsOn:[],      categoryKey:'return_gifts',essential:false },
+    { id:'bk8',  title:'Plan party games & prize hampers',        phase:2, leadTimeDays:14, dependsOn:['bk3'], categoryKey:'entertainer', essential:false },
+    { id:'bk9',  title:'Confirm guest RSVPs',                     phase:3, leadTimeDays:7,  dependsOn:['bk6'], categoryKey:'catering',    essential:true  },
+    { id:'bk10', title:'Final headcount and menu with caterer',   phase:3, leadTimeDays:3,  dependsOn:['bk9'], categoryKey:'catering',    essential:true  },
+    { id:'bk11', title:'Decorator delivery & balloon arch prep',   phase:4, leadTimeDays:1,  dependsOn:['bk2'], categoryKey:'decor',       essential:true  },
+    { id:'bk12', title:'Party host briefing & cake setup',        phase:5, leadTimeDays:0,  dependsOn:['bk10','bk11'], categoryKey:'decor', essential:true },
+  ],
+  extras: [
+    { key:'magic_show',   label:'Magic show',      defaultRupees:8_000  },
+    { key:'photo_booth',  label:'Photo booth',     defaultRupees:5_000  },
+    { key:'face_painting',label:'Face painting',   defaultRupees:3_000  },
+  ],
+};
+
+// ── Community festival ────────────────────────────────────────────────────────
+
+const COMMUNITY_FESTIVAL: OccasionPreset = {
+  type: 'community_festival', label: 'Community Festival',
+  description: 'Festivals, college fests, temple & society events',
+  accentColor: '#2F6B3A', illustration: 'community',
+  weights: [
+    { key: 'venue_permits', label: 'Venue & Permits',    percent: 20 },
+    { key: 'catering',      label: 'Catering',           percent: 25 },
+    { key: 'stage_sound',   label: 'Stage & Sound',      percent: 18 },
+    { key: 'decor',         label: 'Décor & Lighting',   percent: 10 },
+    { key: 'security',      label: 'Security & Safety',  percent: 10 },
+    { key: 'printing',      label: 'Printing & Promo',   percent:  7 },
+    { key: 'volunteers',    label: 'Volunteers & Misc',  percent:  5 },
+    { key: 'contingency',   label: 'Contingency',        percent:  5 },
+  ],
+  bounds: {
+    venue_permits: { min: 10, max: 35 }, catering:   { min: 15, max: 40 },
+    stage_sound:   { min: 10, max: 30 }, decor:      { min:  5, max: 20 },
+    security:      { min:  5, max: 20 }, printing:   { min:  3, max: 15 },
+    volunteers:    { min:  2, max: 12 }, contingency: { min: 5, max: 15 },
+  },
+  perGuestKeys: ['catering'],
+  vendorKeys: ['caterer','sound_vendor','decorator','security'],
+  taskTemplates: [
+    { id:'cf1',  title:'Reserve ground / hall & municipal permits',phase:1, leadTimeDays:120, dependsOn:[],      categoryKey:'venue_permits', essential:true  },
+    { id:'cf2',  title:'Book stage, sound & generator vendor',     phase:1, leadTimeDays:90,  dependsOn:['cf1'], categoryKey:'stage_sound',   essential:true  },
+    { id:'cf3',  title:'Book cultural troupe / artists',           phase:1, leadTimeDays:75,  dependsOn:[],      categoryKey:'volunteers',    essential:false },
+    { id:'cf4',  title:'Finalise full program schedule',           phase:2, leadTimeDays:60,  dependsOn:['cf1'], categoryKey:'volunteers',    essential:true  },
+    { id:'cf5',  title:'Print banners, posters & invitations',     phase:2, leadTimeDays:45,  dependsOn:['cf4'], categoryKey:'printing',      essential:false },
+    { id:'cf6',  title:'Confirm prasadam / food caterer',          phase:2, leadTimeDays:35,  dependsOn:[],      categoryKey:'catering',      essential:true  },
+    { id:'cf7',  title:'Arrange private security & barricading',   phase:3, leadTimeDays:21,  dependsOn:['cf1'], categoryKey:'security',      essential:true  },
+    { id:'cf8',  title:'Coordinate with local police & traffic',   phase:3, leadTimeDays:14,  dependsOn:['cf1'], categoryKey:'security',      essential:true  },
+    { id:'cf9',  title:'Stage lighting & audio tech dry run',      phase:3, leadTimeDays:7,   dependsOn:['cf2'], categoryKey:'stage_sound',   essential:true  },
+    { id:'cf10', title:'Volunteer core team briefing',             phase:3, leadTimeDays:3,   dependsOn:['cf4'], categoryKey:'volunteers',    essential:true  },
+    { id:'cf11', title:'Sound check & puja/stage setup',           phase:4, leadTimeDays:1,   dependsOn:['cf9'], categoryKey:'stage_sound',   essential:true  },
+    { id:'cf12', title:'Event day coordination & crowd safety',    phase:5, leadTimeDays:0,   dependsOn:['cf11'],categoryKey:'volunteers',    essential:true  },
+  ],
+  extras: [
+    { key:'live_performer', label:'Live performer / celebrity', defaultRupees:1_00_000 },
+    { key:'drone_coverage', label:'Drone coverage',             defaultRupees:25_000   },
+  ],
+};
+
+// ── Engagement ────────────────────────────────────────────────────────────────
+
+const ENGAGEMENT: OccasionPreset = {
+  type: 'engagement', label: 'Engagement',
+  description: 'Ring ceremony, roka, nischayathartham',
+  accentColor: '#F2A71B', illustration: 'engagement',
+  weights: [
+    { key: 'venue',       label: 'Venue',           percent: 25 },
+    { key: 'catering',    label: 'Catering',        percent: 30 },
+    { key: 'decor',       label: 'Décor',           percent: 15 },
+    { key: 'photography', label: 'Photography',     percent: 12 },
+    { key: 'gifts',       label: 'Gifts & Exchange',percent: 10 },
+    { key: 'contingency', label: 'Contingency',     percent:  8 },
+  ],
+  bounds: {
+    venue:        { min: 15, max: 40 }, catering:    { min: 20, max: 45 },
+    decor:        { min:  5, max: 25 }, photography: { min:  5, max: 20 },
+    gifts:        { min:  5, max: 20 }, contingency: { min:  5, max: 15 },
+  },
+  perGuestKeys: ['catering'],
+  vendorKeys: ['caterer','decorator','photographer'],
+  taskTemplates: [
+    { id:'en1',  title:'Confirm engagement date with elders & priest',phase:1, leadTimeDays:90, dependsOn:[],      categoryKey:'venue',       essential:true },
+    { id:'en2',  title:'Book banquet hall / venue',                  phase:1, leadTimeDays:75, dependsOn:['en1'], categoryKey:'venue',       essential:true },
+    { id:'en3',  title:'Hire candid photographer & videographer',    phase:1, leadTimeDays:60, dependsOn:[],      categoryKey:'photography', essential:true },
+    { id:'en4',  title:'Book floral decorator for stage backdrop',   phase:1, leadTimeDays:50, dependsOn:['en2'], categoryKey:'decor',       essential:true },
+    { id:'en5',  title:'Select rings & exchange gifts',              phase:2, leadTimeDays:40, dependsOn:[],      categoryKey:'gifts',       essential:true },
+    { id:'en6',  title:'Send formal invitations to families',        phase:2, leadTimeDays:30, dependsOn:['en2'], categoryKey:'venue',       essential:true },
+    { id:'en7',  title:'Couple engagement attire shopping & fitting',phase:2, leadTimeDays:25, dependsOn:[],      categoryKey:'gifts',       essential:true },
+    { id:'en8',  title:'Finalise welcome drink & feast menu',        phase:2, leadTimeDays:20, dependsOn:['en2'], categoryKey:'catering',    essential:true },
+    { id:'en9',  title:'Arrange makeup artist & hair stylist',       phase:3, leadTimeDays:14, dependsOn:[],      categoryKey:'decor',       essential:false},
+    { id:'en10', title:'Confirm guest RSVPs and seat counts',        phase:3, leadTimeDays:7,  dependsOn:['en6'], categoryKey:'catering',    essential:true },
+    { id:'en11', title:'Venue dry run & floral stage installation',  phase:4, leadTimeDays:1,  dependsOn:['en4'], categoryKey:'decor',       essential:true },
+    { id:'en12', title:'Muhurtham coordination & ring presentation', phase:5, leadTimeDays:0,  dependsOn:['en11'],categoryKey:'gifts',       essential:true },
+  ],
+  extras: [{ key:'photo_booth', label:'Photo booth', defaultRupees:6_000 }],
+};
+
+// ── Birthday (adult) ──────────────────────────────────────────────────────────
+
+const BIRTHDAY_ADULT: OccasionPreset = {
+  type: 'birthday_adult', label: "Adult Birthday",
+  description: 'Milestone birthdays — 18th, 25th, 50th',
+  accentColor: '#0F5C5C', illustration: 'birthday_adult',
+  weights: [
+    { key: 'venue',       label: 'Venue',        percent: 22 },
+    { key: 'catering',    label: 'Catering',     percent: 32 },
+    { key: 'decor',       label: 'Décor',        percent: 16 },
+    { key: 'photography', label: 'Photography',  percent:  8 },
+    { key: 'entertainment',label:'Entertainment',percent: 12 },
+    { key: 'contingency', label: 'Contingency',  percent: 10 },
+  ],
+  bounds: {
+    venue:         { min: 10, max: 40 }, catering:      { min: 20, max: 45 },
+    decor:         { min:  5, max: 25 }, photography:   { min:  3, max: 15 },
+    entertainment: { min:  5, max: 25 }, contingency:   { min:  5, max: 15 },
+  },
+  perGuestKeys: ['catering'],
+  vendorKeys: ['caterer','decorator','photographer','dj'],
+  taskTemplates: [
+    { id:'ba1',  title:'Finalise date and celebration guest list',phase:1, leadTimeDays:60, dependsOn:[],      categoryKey:'venue',         essential:true },
+    { id:'ba2',  title:'Book lounge / private venue',            phase:1, leadTimeDays:50, dependsOn:['ba1'], categoryKey:'venue',         essential:true },
+    { id:'ba3',  title:'Book DJ / acoustic live music',          phase:1, leadTimeDays:45, dependsOn:[],      categoryKey:'entertainment', essential:false},
+    { id:'ba4',  title:'Book event photographer',                phase:1, leadTimeDays:35, dependsOn:[],      categoryKey:'photography',   essential:false},
+    { id:'ba5',  title:'Send digital invites & RSVP tracking',   phase:2, leadTimeDays:25, dependsOn:['ba2'], categoryKey:'venue',         essential:true },
+    { id:'ba6',  title:'Order signature gourmet cake',          phase:2, leadTimeDays:20, dependsOn:[],      categoryKey:'catering',      essential:true },
+    { id:'ba7',  title:'Curate cocktails & multi-course dining', phase:2, leadTimeDays:15, dependsOn:['ba2'], categoryKey:'catering',      essential:true },
+    { id:'ba8',  title:'Arrange photo booth & memory book',      phase:2, leadTimeDays:12, dependsOn:[],      categoryKey:'decor',         essential:false},
+    { id:'ba9',  title:'Confirm final headcount with venue',     phase:3, leadTimeDays:7,  dependsOn:['ba5'], categoryKey:'catering',      essential:true },
+    { id:'ba10', title:'AV audio-visual video compilation check',phase:3, leadTimeDays:4,  dependsOn:[],      categoryKey:'entertainment', essential:false},
+    { id:'ba11', title:'Sound check & venue lighting setup',     phase:4, leadTimeDays:1,  dependsOn:['ba3'], categoryKey:'entertainment', essential:true },
+    { id:'ba12', title:'Host briefing & celebratory toast',      phase:5, leadTimeDays:0,  dependsOn:['ba11'],categoryKey:'venue',         essential:true },
+  ],
+  extras: [{ key:'photo_booth', label:'Photo booth', defaultRupees:8_000 }],
+};
+
+// ── Baby shower ───────────────────────────────────────────────────────────────
+
+const BABY_SHOWER: OccasionPreset = {
+  type: 'baby_shower', label: 'Baby Shower',
+  description: 'Godh bharai, valaikappu, seemantham',
+  accentColor: '#2F6B3A', illustration: 'baby_shower',
+  weights: [
+    { key: 'venue',       label: 'Venue',      percent: 20 },
+    { key: 'catering',    label: 'Catering',   percent: 35 },
+    { key: 'decor',       label: 'Décor',      percent: 20 },
+    { key: 'rituals',     label: 'Rituals',    percent: 10 },
+    { key: 'gifts',       label: 'Gifts',      percent:  8 },
+    { key: 'contingency', label: 'Contingency',percent:  7 },
+  ],
+  bounds: {
+    venue:       { min: 10, max: 35 }, catering:    { min: 20, max: 45 },
+    decor:       { min:  5, max: 30 }, rituals:     { min:  5, max: 20 },
+    gifts:       { min:  3, max: 15 }, contingency: { min:  5, max: 15 },
+  },
+  perGuestKeys: ['catering'],
+  vendorKeys: ['caterer','decorator','photographer'],
+  taskTemplates: [
+    { id:'bs1',  title:'Fix auspicious muhurtham / date with family',   phase:1, leadTimeDays:60, dependsOn:[],      categoryKey:'venue',    essential:true },
+    { id:'bs2',  title:'Book community hall or home setup',            phase:1, leadTimeDays:50, dependsOn:['bs1'], categoryKey:'venue',    essential:true },
+    { id:'bs3',  title:'Book photographer for maternity & ceremony',    phase:1, leadTimeDays:40, dependsOn:[],      categoryKey:'decor',    essential:false},
+    { id:'bs4',  title:'Book flower decorator (thoranam & cradle decor)',phase:1, leadTimeDays:35, dependsOn:['bs2'], categoryKey:'decor',    essential:true },
+    { id:'bs5',  title:'Send traditional invitations',                  phase:2, leadTimeDays:25, dependsOn:['bs2'], categoryKey:'venue',    essential:true },
+    { id:'bs6',  title:'Order traditional glass bangles & floral set',  phase:2, leadTimeDays:20, dependsOn:[],      categoryKey:'rituals',  essential:true },
+    { id:'bs7',  title:'Confirm traditional multi-rice catering menu',  phase:2, leadTimeDays:15, dependsOn:['bs2'], categoryKey:'catering', essential:true },
+    { id:'bs8',  title:'Purchase tamboolam gifts & return favor bags',  phase:2, leadTimeDays:12, dependsOn:[],      categoryKey:'gifts',    essential:false},
+    { id:'bs9',  title:'Confirm priest / elder ritual conductor',       phase:3, leadTimeDays:7,  dependsOn:['bs1'], categoryKey:'rituals',  essential:true },
+    { id:'bs10', title:'Confirm guest headcount for feast',             phase:3, leadTimeDays:4,  dependsOn:['bs5'], categoryKey:'catering', essential:true },
+    { id:'bs11', title:'Stage floral setup & cradle arrangement',       phase:4, leadTimeDays:1,  dependsOn:['bs4'], categoryKey:'decor',    essential:true },
+    { id:'bs12', title:'Seemantham / valaikappu ritual ceremony',       phase:5, leadTimeDays:0,  dependsOn:['bs11'],categoryKey:'rituals',  essential:true },
+  ],
+  extras: [{ key:'plate_decoration', label:'Plate decoration', defaultRupees:4_000 }],
+};
+
+// ── Coming of age ─────────────────────────────────────────────────────────────
+
+const COMING_OF_AGE: OccasionPreset = {
+  type: 'coming_of_age', label: 'Coming-of-age',
+  description: 'Half-saree, thread ceremony, upanayanam, puberty ceremony',
+  accentColor: '#B3261E', illustration: 'coming_of_age',
+  weights: [
+    { key: 'venue',       label: 'Venue',       percent: 22 },
+    { key: 'catering',    label: 'Catering',    percent: 32 },
+    { key: 'rituals',     label: 'Rituals',     percent: 18 },
+    { key: 'attire',      label: 'Attire',      percent: 12 },
+    { key: 'photography', label: 'Photography', percent:  8 },
+    { key: 'contingency', label: 'Contingency', percent:  8 },
+  ],
+  bounds: {
+    venue:       { min: 15, max: 40 }, catering:    { min: 20, max: 45 },
+    rituals:     { min: 10, max: 30 }, attire:      { min:  5, max: 20 },
+    photography: { min:  3, max: 15 }, contingency: { min:  5, max: 15 },
+  },
+  perGuestKeys: ['catering'],
+  vendorKeys: ['caterer','priest','decorator','photographer','tailor'],
+  taskTemplates: [
+    { id:'ca1',  title:'Fix auspicious date with family priest',        phase:1, leadTimeDays:90, dependsOn:[],      categoryKey:'rituals',     essential:true },
+    { id:'ca2',  title:'Book kalyana mandapam or community hall',       phase:1, leadTimeDays:75, dependsOn:['ca1'], categoryKey:'venue',       essential:true },
+    { id:'ca3',  title:'Book traditional priest team & samagri list',   phase:1, leadTimeDays:60, dependsOn:['ca1'], categoryKey:'rituals',     essential:true },
+    { id:'ca4',  title:'Book ceremony photographer & videographer',     phase:1, leadTimeDays:50, dependsOn:[],      categoryKey:'photography', essential:false},
+    { id:'ca5',  title:'Order traditional ceremony attire & jewelry',   phase:2, leadTimeDays:40, dependsOn:[],      categoryKey:'attire',      essential:true },
+    { id:'ca6',  title:'Book floral decorator for stage & entrance',    phase:2, leadTimeDays:35, dependsOn:['ca2'], categoryKey:'venue',       essential:true },
+    { id:'ca7',  title:'Print and distribute family invitations',       phase:2, leadTimeDays:30, dependsOn:['ca2'], categoryKey:'venue',       essential:true },
+    { id:'ca8',  title:'Plan traditional feast menu with caterer',      phase:2, leadTimeDays:21, dependsOn:['ca2'], categoryKey:'catering',    essential:true },
+    { id:'ca9',  title:'Purchase ceremony puja samagri & return gifts', phase:3, leadTimeDays:14, dependsOn:['ca3'], categoryKey:'rituals',     essential:false},
+    { id:'ca10', title:'Confirm guest count with caterer',              phase:3, leadTimeDays:7,  dependsOn:['ca7'], categoryKey:'catering',    essential:true },
+    { id:'ca11', title:'Mandapam floral setup & sound system check',    phase:4, leadTimeDays:1,  dependsOn:['ca6'], categoryKey:'venue',       essential:true },
+    { id:'ca12', title:'Ceremony muhurtham & blessings feast',          phase:5, leadTimeDays:0,  dependsOn:['ca11'],categoryKey:'rituals',     essential:true },
+  ],
+  extras: [{ key:'chenda_melam', label:'Chenda Melam', defaultRupees:12_000 }],
+};
+
+// ── Registry ──────────────────────────────────────────────────────────────────
+
+export const PRESETS: Readonly<Record<OccasionType, OccasionPreset>> = {
+  wedding:           WEDDING,
+  engagement:        ENGAGEMENT,
+  birthday_kids:     BIRTHDAY_KIDS,
+  birthday_adult:    BIRTHDAY_ADULT,
+  baby_shower:       BABY_SHOWER,
+  coming_of_age:     COMING_OF_AGE,
+  community_festival: COMMUNITY_FESTIVAL,
+};
+
+/** Returns the preset for a given occasion type. */
+export function getPreset(type: OccasionType): OccasionPreset {
+  const p = PRESETS[type];
+  return p;
+}

@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitReturns": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "paths": {
+      "@engine/*":  ["./src/engine/*"],
+      "@schemas/*": ["./src/schemas/*"],
+      "@state/*":   ["./src/state/*"],
+      "@lib/*":     ["./src/lib/*"],
+      "@components/*": ["./src/components/*"],
+      "@locales/*": ["./src/locales/*"]
+    }
+  },
+  "include": ["src", "tests/engine", "tests/schemas", "tests/ui", "tests/hygiene"],
+  "exclude": ["node_modules", "dist", "dist-server", "server", "e2e"]
+}
