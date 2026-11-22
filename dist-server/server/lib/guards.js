@@ -24,7 +24,9 @@ export function sameOriginGuard(req, res, next) {
                 return;
             }
         }
-        catch { /* fall through */ }
+        catch (_err) {
+            // Malformed referer header URL; continue to mandatory origin header check
+        }
     }
     if (!origin) {
         res.status(403).json({ error: { code: 'FORBIDDEN', message: 'Missing Origin' } });

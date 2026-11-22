@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { usePlan } from '../../state/store.js';
+import { usePlan, useCurrentPlan } from '../../state/store.js';
 import { useToast } from '../shared/Toast.js';
 import { computeRisks } from '../../engine/risks.js';
 import { computeReadiness } from '../../engine/readiness.js';
@@ -18,7 +18,7 @@ const CAT_EMOJIS: Record<string, string> = {
 export default function RescuePanel(): React.ReactElement {
   const { state, dispatch } = usePlan();
   const { toast } = useToast();
-  const plan = state.plan!;
+  const plan = useCurrentPlan();
   const today = new Date().toISOString().slice(0, 10);
 
   const [aiLoading, setAiLoading] = useState(false);

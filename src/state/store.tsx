@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { planReducer, initialPlanState, type PlanState, type PlanAction } from './reducer.js';
 import { autosave, loadSaved } from './autosave.js';
+import type { Plan } from '../schemas/plan.js';
 
 /** @fileoverview React context + useReducer store for the plan. Autosaves on every change. */
 
@@ -38,6 +39,15 @@ export function usePlan(): PlanContextValue {
 }
 
 /** Convenience selector — returns the current plan or null. */
-export function usePlanData() {
+export function usePlanData(): Plan | null {
   return usePlan().state.plan;
+}
+
+/** Returns the active plan. Throws an error if accessed before a plan is created. */
+export function useCurrentPlan(): Plan {
+  const plan = usePlanData();
+  if (!plan) {
+    throw new Error('useCurrentPlan must be called within an active plan session');
+  }
+  return plan;
 }

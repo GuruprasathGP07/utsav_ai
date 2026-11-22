@@ -1,5 +1,5 @@
 import React from 'react';
-import { usePlan } from '../../state/store.js';
+import { usePlan, useCurrentPlan } from '../../state/store.js';
 import { useToast } from '../shared/Toast.js';
 import { formatINR } from '../../engine/money.js';
 import { Lock, Unlock, Star } from 'lucide-react';
@@ -7,9 +7,9 @@ import { Lock, Unlock, Star } from 'lucide-react';
 /** @fileoverview Budget tab — sliders, lock, priority, live redistribution, change toasts. */
 
 export default function BudgetPanel(): React.ReactElement {
-  const { state, dispatch } = usePlan();
+  const { dispatch } = usePlan();
   const { toast } = useToast();
-  const plan = state.plan!;
+  const plan = useCurrentPlan();
 
   const handleAmountChange = (key: string, value: number) => {
     dispatch({ type: 'UPDATE_BUDGET', payload: { categoryKey: key, amount: value } });

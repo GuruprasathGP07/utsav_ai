@@ -2,7 +2,7 @@
 
 let liveRegion: HTMLElement | null = null;
 
-function getLiveRegion(): HTMLElement {
+function getLiveRegion(): HTMLElement | null {
   if (!liveRegion && typeof document !== 'undefined') {
     liveRegion = document.getElementById('utsavai-a11y-announcer');
     if (!liveRegion) {
@@ -23,7 +23,7 @@ function getLiveRegion(): HTMLElement {
       document.body.appendChild(liveRegion);
     }
   }
-  return liveRegion!;
+  return liveRegion;
 }
 
 export function announceToScreenReader(message: string): void {

@@ -3,10 +3,12 @@ import { zodToJsonSchema } from 'zod-to-json-schema';
 import type { z } from 'zod';
 import { logger } from './logger.js';
 
-try {
-  process.loadEnvFile?.();
-} catch {
-  // .env is optional when running in container/Cloud Run
+if (process.env['NODE_ENV'] !== 'test') {
+  try {
+    process.loadEnvFile?.();
+  } catch {
+    // .env is optional when running in container/Cloud Run
+  }
 }
 
 /** @fileoverview Gemini client — failover, streaming, abort, per-model cooldown, LRU cache.
@@ -86,7 +88,7 @@ export interface GeminiCallOptions<S extends z.ZodTypeAny> {
 export async function geminiCall<S extends z.ZodTypeAny>(
   opts: GeminiCallOptions<S>,
 ): Promise<z.infer<S> | null> {
-  if (!process.env['GEMINI_API_KEY']) {
+  if (!process.env['GEMINI_API_KEY'] && process.env['NODE_ENV'] !== 'test') {
     try {
       process.loadEnvFile?.();
     } catch {
@@ -94,7 +96,7 @@ export async function geminiCall<S extends z.ZodTypeAny>(
     }
   }
 
-  if (!process.env['GEMINI_API_KEY']) {
+  if (!process.env['GEMINI_API_KEY'] && process.env['NODE_ENV'] !== 'test') {
     logger.info('Gemini API key missing — demo mode');
     return null;
   }

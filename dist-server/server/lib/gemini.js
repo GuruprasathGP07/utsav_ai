@@ -1,6 +1,14 @@
 import { GoogleGenAI } from '@google/genai';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import { logger } from './logger.js';
+if (process.env['NODE_ENV'] !== 'test') {
+    try {
+        process.loadEnvFile?.();
+    }
+    catch {
+        // .env is optional when running in container/Cloud Run
+    }
+}
 /** @fileoverview Gemini client — failover, streaming, abort, per-model cooldown, LRU cache.
  * User text is always wrapped in <user_text> tags. */
 // ── Model chain ───────────────────────────────────────────────────────────────
@@ -40,14 +48,31 @@ function stripInjection(text) {
     return text.replace(/<\/user_text>/gi, '').replace(/IGNORE\s+PREVIOUS/gi, '[FILTERED]');
 }
 // ── Core call ─────────────────────────────────────────────────────────────────
-const ai = new GoogleGenAI({ apiKey: process.env['GEMINI_API_KEY'] ?? '' });
+let clientInstance = null;
+let lastApiKey = undefined;
+function getClient() {
+    const currentKey = process.env['GEMINI_API_KEY'] ?? '';
+    if (!clientInstance || lastApiKey !== currentKey) {
+        clientInstance = new GoogleGenAI({ apiKey: currentKey });
+        lastApiKey = currentKey;
+    }
+    return clientInstance;
+}
 /**
  * Calls Gemini with JSON mode using the provided Zod schema as responseSchema.
  * Validates output with the same schema. Fails over to the next model on quota/overload.
  * Returns null if the API key is missing (demo mode).
  */
 export async function geminiCall(opts) {
-    if (!process.env['GEMINI_API_KEY']) {
+    if (!process.env['GEMINI_API_KEY'] && process.env['NODE_ENV'] !== 'test') {
+        try {
+            process.loadEnvFile?.();
+        }
+        catch {
+            // .env is optional
+        }
+    }
+    if (!process.env['GEMINI_API_KEY'] && process.env['NODE_ENV'] !== 'test') {
         logger.info('Gemini API key missing — demo mode');
         return null;
     }
@@ -72,7 +97,7 @@ export async function geminiCall(opts) {
             continue;
         const start = Date.now();
         try {
-            const response = await ai.models.generateContent({
+            const response = await getClient().models.generateContent({
                 model,
                 contents: [{ role: 'user', parts: [{ text: opts.prompt }] }],
                 config,

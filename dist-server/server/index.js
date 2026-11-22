@@ -1,3 +1,11 @@
+if (process.env['NODE_ENV'] !== 'test') {
+    try {
+        process.loadEnvFile?.();
+    }
+    catch {
+        // .env is optional when running in container/Cloud Run
+    }
+}
 import express from 'express';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';

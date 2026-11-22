@@ -215,7 +215,9 @@ export default function Landing(): React.ReactElement {
           const j = await res.json() as { data?: typeof brief };
           brief = j.data ?? {};
         }
-      } catch { /* demo mode — use defaults */ }
+      } catch (_err) {
+        // Fallback to local deterministic defaults when network intake parser is unavailable
+      }
 
       // Build plan with defaults
       const occasion = (brief.occasion ?? 'wedding') as OccasionType;

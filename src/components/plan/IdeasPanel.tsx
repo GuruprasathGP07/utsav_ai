@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
-import { usePlan } from '../../state/store.js';
+import { usePlan, useCurrentPlan } from '../../state/store.js';
 import { useToast } from '../shared/Toast.js';
 import { Sparkles, RefreshCw } from 'lucide-react';
 
 /** @fileoverview Ideas tab — Gemini-generated themes, activities, food, personal touches. */
 
 export default function IdeasPanel(): React.ReactElement {
-  const { state, dispatch } = usePlan();
+  const { dispatch } = usePlan();
   const { toast } = useToast();
-  const plan = state.plan!;
+  const plan = useCurrentPlan();
   const ideas = plan.ideas;
   const [loading, setLoading] = useState(false);
 

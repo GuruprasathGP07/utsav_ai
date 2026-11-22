@@ -1,5 +1,5 @@
 import React from 'react';
-import { usePlan } from '../../state/store.js';
+import { usePlan, useCurrentPlan } from '../../state/store.js';
 import { useToast } from '../shared/Toast.js';
 import { daysBetween } from '../../engine/timeline.js';
 import { CheckCircle, AlertCircle, Clock, AlertTriangle } from 'lucide-react';
@@ -15,9 +15,9 @@ const STATUS_ICONS = {
 };
 
 export default function TimelinePanel(): React.ReactElement {
-  const { state, dispatch } = usePlan();
+  const { dispatch } = usePlan();
   const { toast } = useToast();
-  const plan = state.plan!;
+  const plan = useCurrentPlan();
   const today = new Date().toISOString().slice(0, 10);
 
   const byPhase = [1,2,3,4,5].map(phase => ({

@@ -28,7 +28,9 @@ export function sameOriginGuard(req: Request, res: Response, next: NextFunction)
     try {
       const refHost = new URL(referer).host;
       if (refHost === host) { next(); return; }
-    } catch { /* fall through */ }
+    } catch (_err) {
+      // Malformed referer header URL; continue to mandatory origin header check
+    }
   }
 
   if (!origin) {

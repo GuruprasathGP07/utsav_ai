@@ -1,5 +1,5 @@
 import React from 'react';
-import { usePlan } from '../../state/store.js';
+import { usePlan, useCurrentPlan } from '../../state/store.js';
 import { formatINR, formatINRCompact } from '../../engine/money.js';
 import { computeRisks } from '../../engine/risks.js';
 import { computeReadiness } from '../../engine/readiness.js';
@@ -38,7 +38,7 @@ function DiyaGauge({ score }: { score: number }): React.ReactElement {
 
 export default function OverviewPanel(): React.ReactElement {
   const { state } = usePlan();
-  const plan = state.plan!;
+  const plan = useCurrentPlan();
   const today = new Date().toISOString().slice(0, 10);
   const daysToEvent = daysBetween(today, plan.brief.eventDate);
 

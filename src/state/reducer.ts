@@ -70,16 +70,17 @@ export function planReducer(state: PlanState, action: PlanAction): PlanState {
 
     case 'UPDATE_BUDGET': {
       if (!state.plan) return state;
+      const currentPlan = state.plan;
       const { categoryKey, amount } = action.payload;
-      const preset = getPreset(state.plan.brief.occasion);
+      const preset = getPreset(currentPlan.brief.occasion);
       const result = computeBudget({
-        total:        state.plan.budget.total,
-        weights:      state.plan.budget.categories.map(c =>
-          c.key === categoryKey ? { ...c, percent: (amount / state.plan!.budget.total) * 100 } : c,
+        total:        currentPlan.budget.total,
+        weights:      currentPlan.budget.categories.map(c =>
+          c.key === categoryKey ? { ...c, percent: (amount / currentPlan.budget.total) * 100 } : c,
         ),
         bounds:       preset.bounds,
         perGuestKeys: preset.perGuestKeys,
-        guests:       state.plan.brief.guests,
+        guests:       currentPlan.brief.guests,
       });
       return {
         ...state,

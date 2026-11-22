@@ -8,10 +8,6 @@ function penalty(risk) {
     const raw = risk.severity * risk.likelihood * SCALE;
     return risk.backupDone ? raw * BACKUP_DONE_FACTOR : raw;
 }
-/** Maximum possible penalty (all risks at severity=5, likelihood=5, undone). */
-function maxPenalty(risks) {
-    return risks.reduce((s, r) => s + r.severity * r.likelihood * SCALE, 0);
-}
 /**
  * Computes the readiness score, category breakdown, and top-3 actions
  * ranked by penalty reduction per day (most urgent first).
@@ -21,17 +17,12 @@ export function computeReadiness(risks) {
         return { score: 100, breakdown: {}, topActions: [] };
     }
     const totalPenalty = risks.reduce((s, r) => s + penalty(r), 0);
-    const max = maxPenalty(risks);
-    const raw = max > 0 ? 100 - (totalPenalty / max) * 100 : 100;
+    const raw = 100 - totalPenalty;
     const score = Math.round(Math.max(0, Math.min(100, raw)));
-    // Category breakdown: each category's penalty as a share of max (0-100)
-    const catPenalty = {};
-    for (const r of risks) {
-        catPenalty[r.category] = (catPenalty[r.category] ?? 0) + penalty(r);
-    }
+    // Category breakdown: penalty impact by category
     const breakdown = {};
-    for (const [cat, p] of Object.entries(catPenalty)) {
-        breakdown[cat] = Math.round(max > 0 ? (p / max) * 100 : 0);
+    for (const r of risks) {
+        breakdown[r.category] = Math.round((breakdown[r.category] ?? 0) + penalty(r));
     }
     // Top 3 actions: undone risks ranked by penaltyReduction / dueDaysBefore
     const undone = risks.filter(r => !r.backupDone);

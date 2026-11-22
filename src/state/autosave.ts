@@ -34,5 +34,9 @@ export function loadSaved(): PlanState | null {
 
 /** Clears the saved plan from localStorage. */
 export function clearSaved(): void {
-  try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch (_err) {
+    // Storage access may be restricted by client privacy policies or sandbox environments
+  }
 }

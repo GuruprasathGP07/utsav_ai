@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { usePlan } from '../../state/store.js';
+import { usePlan, useCurrentPlan } from '../../state/store.js';
 import { useToast } from '../shared/Toast.js';
 import { formatINR } from '../../engine/money.js';
 import { Plus, Trash2, CheckCircle } from 'lucide-react';
@@ -11,9 +11,9 @@ const STATUS_LABELS = { not_started: 'Not started', contacted: 'Contacted', quot
 const STATUS_COLORS = { not_started: 'var(--ink-ghost)', contacted: 'var(--marigold-mid)', quoted: 'var(--peacock)', accepted: 'var(--leaf)' };
 
 export default function VendorsPanel(): React.ReactElement {
-  const { state, dispatch } = usePlan();
+  const { dispatch } = usePlan();
   const { toast } = useToast();
-  const plan = state.plan!;
+  const plan = useCurrentPlan();
 
   const [addingFor, setAddingFor] = useState<string | null>(null);
   const [newVendorName, setNewVendorName] = useState('');

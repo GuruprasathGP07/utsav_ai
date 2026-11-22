@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { usePlan } from '../../state/store.js';
+import { useCurrentPlan } from '../../state/store.js';
 import { useToast } from '../shared/Toast.js';
 import { encodeShareLink } from '../../schemas/share.js';
 import { exportToICS } from '../../engine/compression.js';
@@ -8,9 +8,8 @@ import { Copy, Download, FileText, Share2 } from 'lucide-react';
 /** @fileoverview Share tab — base64url share link, .ics export, print summary. */
 
 export default function SharePanel(): React.ReactElement {
-  const { state } = usePlan();
   const { toast } = useToast();
-  const plan = state.plan!;
+  const plan = useCurrentPlan();
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
 

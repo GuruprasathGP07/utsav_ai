@@ -1,7 +1,9 @@
-try {
-  process.loadEnvFile?.();
-} catch {
-  // .env is optional when running in container/Cloud Run
+if (process.env['NODE_ENV'] !== 'test') {
+  try {
+    process.loadEnvFile?.();
+  } catch {
+    // .env is optional when running in container/Cloud Run
+  }
 }
 
 import express, { type Request, type Response, type NextFunction } from 'express';
