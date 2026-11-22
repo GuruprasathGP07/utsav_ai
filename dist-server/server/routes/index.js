@@ -61,19 +61,22 @@ If a field cannot be determined, omit it. Never invent prices beyond what the us
     const result = await geminiCall({ prompt, schema: ParseIntakeResponseSchema, cacheKey: hash });
     const data = result ?? fallbackParse(sentence);
     res.json({ data, demo: !process.env['GEMINI_API_KEY'] });
+    return;
 });
 // ── Extract quote ─────────────────────────────────────────────────────────────
 const ExtractQuoteBody = z.object({
-    quoteText: z.string().min(1).max(5000),
+    quoteText: z.string().min(1).max(5000).optional(),
+    rawText: z.string().min(1).max(5000).optional(),
     language: z.enum(['en', 'hi', 'ta', 'te', 'kn', 'ml']).default('en'),
 });
 apiRouter.post('/extract-quote', aiLimiter, async (req, res) => {
     const body = ExtractQuoteBody.safeParse(req.body);
-    if (!body.success) {
+    if (!body.success || (!body.data.quoteText && !body.data.rawText)) {
         res.status(400).json({ error: { code: 'VALIDATION_ERROR' } });
         return;
     }
-    const { quoteText, language } = body.data;
+    const quoteText = body.data.quoteText ?? body.data.rawText ?? '';
+    const { language } = body.data;
     const hash = await sha256(`quote:${quoteText}`);
     const prompt = `
 Extract vendor quote details from the following text. Language context: ${language}.
@@ -83,10 +86,87 @@ guestMinimum, overtimeRatePerHr, taxPercent, advancePercent, inclusions (array o
 cancellationPolicy. Use null for unstated fields. Never invent values.`;
     const result = await geminiCall({ prompt, schema: ExtractQuoteResponseSchema, cacheKey: hash });
     res.json({ data: result, demo: !process.env['GEMINI_API_KEY'] });
+    return;
 });
+function fallbackIdeas(brief) {
+    const isWedding = brief.occasion === 'wedding' || brief.occasion === 'engagement';
+    const isBirthday = brief.occasion.startsWith('birthday');
+    if (isWedding) {
+        return {
+            themes: [
+                'Royal Marigold & Temple Jasmine',
+                'Traditional Kanchipuram Elegance',
+                'Sunset Sangeet & Folk Heritage',
+                'Pastel Floral Canopies with Brass Diya Accents',
+            ],
+            activities: [
+                'Traditional Oonjal & Folk Welcome Songs',
+                'Live Classical Carnatic / Hindustani Ensemble',
+                'Customized Mehendi & Henna Art Lounge',
+                'Interactive Kolam / Rangoli Welcome Demonstration',
+            ],
+            foodStyle: [
+                'Traditional Multi-course Festive Feast on Banana Leaves',
+                'Live Dosa, Chaat & Regional Specialty Counters',
+                'Signature Filter Coffee & Chai Tasting Station',
+                'Grand Mithai Bar featuring Regional Delicacies',
+            ],
+            personalTouches: [
+                'Handcrafted Thamboolam / Return Gift Hampers with Brass Lamps',
+                'Customized Welcome Cards with Family Monogram',
+                'Floral Entrance Toran woven with Fresh Marigolds',
+            ],
+            invitationLine: `With hearts full of joy and gratitude, we warmly invite you to celebrate this auspicious wedding with our family in ${brief.city}.`,
+        };
+    }
+    if (isBirthday) {
+        return {
+            themes: [
+                'Enchanted Carnival of Colors',
+                'Starlit Bollywood Disco Fiesta',
+                'Festive Balloon Canopy & Golden Sparkles',
+            ],
+            activities: [
+                'Interactive Magic & Illusion Showcase',
+                'Live Caricature & Pottery Workshop',
+                'Curated Photo Booth with Festive Props',
+            ],
+            foodStyle: [
+                'Artisanal Finger Foods & Fusion Appetizers',
+                'Live Woodfired Pizza & Street-food Counters',
+                'Custom Birthday Dessert Table & Gourmet Cupcakes',
+            ],
+            personalTouches: [
+                'Personalized Keepsake Return Goodie Bags',
+                'Handwritten Memory Message Board for Guests',
+            ],
+            invitationLine: `Join us for an unforgettable celebration of joy, laughter, and milestones in ${brief.city}!`,
+        };
+    }
+    return {
+        themes: [
+            'Traditional Cultural Heritage & Golden Diyas',
+            'Community Harmony & Festive Floral Displays',
+        ],
+        activities: [
+            'Community Cultural Performances & Classical Music',
+            'Folk Dance Demonstrations (Garba / Dandiya / Kolattam)',
+            'Community Feasting & Prasadam Distribution',
+        ],
+        foodStyle: [
+            'Wholesome Festive Prasadam & Regional Delicacies',
+            'Traditional Sweet & Savory Snack Spread',
+        ],
+        personalTouches: [
+            'Eco-friendly Clay Diyas & Handcrafted Welcome Gifts',
+            'Community Remembrance & Blessing Station',
+        ],
+        invitationLine: `We warmly welcome you and your family to join us in commemorating this joyful celebration in ${brief.city}.`,
+    };
+}
 // ── Suggest ideas ─────────────────────────────────────────────────────────────
 const IdeasBody = z.object({ brief: BriefSchema });
-apiRouter.post('/suggest-ideas', aiLimiter, async (req, res) => {
+const handleSuggestIdeas = async (req, res) => {
     const body = IdeasBody.safeParse(req.body);
     if (!body.success) {
         res.status(400).json({ error: { code: 'VALIDATION_ERROR' } });
@@ -102,8 +182,12 @@ Vibe: ${wrapUserText(brief.vibe || 'traditional')}, Language: ${brief.language}.
 Provide themes, activities, foodStyle, personalTouches, invitationLine.
 No prices. No vendor names. Keep culturally rooted.`;
     const result = await geminiCall({ prompt, schema: IdeasResponseSchema, cacheKey: hash });
-    res.json({ data: result, demo: !process.env['GEMINI_API_KEY'] });
-});
+    const data = result ?? fallbackIdeas(brief);
+    res.json({ data, demo: !process.env['GEMINI_API_KEY'] });
+    return;
+};
+apiRouter.post('/suggest-ideas', aiLimiter, handleSuggestIdeas);
+apiRouter.post('/generate-ideas', aiLimiter, handleSuggestIdeas);
 // ── Generate risks ────────────────────────────────────────────────────────────
 const RisksBody = z.object({ brief: BriefSchema, existingRiskIds: z.array(z.string()).max(20) });
 apiRouter.post('/generate-risks', aiLimiter, async (req, res) => {
@@ -121,7 +205,34 @@ Existing rule-based risks (do NOT repeat): ${existingRiskIds.join(', ')}.
 Suggest up to 3 ADDITIONAL contextual risks not already covered. Focus on local/cultural factors.
 Each risk: title, reason, severity (1-5), likelihood (1-5), category, backup action.`;
     const result = await geminiCall({ prompt, schema: GenerateRisksResponseSchema, cacheKey: hash });
-    res.json({ data: result, demo: !process.env['GEMINI_API_KEY'] });
+    const data = result ?? {
+        risks: [
+            {
+                title: `Peak celebration vendor demand in ${brief.city}`,
+                reason: 'High demand on auspicious dates can lead to last-minute vendor price inflation or scheduling overlap.',
+                severity: 3,
+                likelihood: 4,
+                category: 'vendor',
+                backup: {
+                    action: 'Reconfirm vendor commitments in writing with signed SLA 30 days prior',
+                    dueDaysBefore: 30,
+                },
+            },
+            {
+                title: 'Guest headcount fluctuation',
+                reason: 'Indian gatherings typically experience ±15% variance between RSVPs and actual attendees on the day.',
+                severity: 3,
+                likelihood: 3,
+                category: 'guest',
+                backup: {
+                    action: 'Agree on a 10% dynamic buffer plate tier with the caterer',
+                    dueDaysBefore: 14,
+                },
+            },
+        ],
+    };
+    res.json({ data, demo: !process.env['GEMINI_API_KEY'] });
+    return;
 });
 // ── Plan review ───────────────────────────────────────────────────────────────
 const ReviewBody = z.object({ brief: BriefSchema, summary: z.string().max(2000) });
@@ -140,20 +251,33 @@ Occasion: ${brief.occasion}, City: ${brief.city}, Guests: ${brief.guests}, Budge
 Respond with steps (array of 3 strings) and an optional note. Use only stated facts.`;
     const result = await geminiCall({ prompt, schema: PlanReviewResponseSchema, cacheKey: hash });
     res.json({ data: result, demo: !process.env['GEMINI_API_KEY'] });
+    return;
 });
 // ── Planner chat ──────────────────────────────────────────────────────────────
 const ChatBody = z.object({
-    question: z.string().min(1).max(1000),
-    brief: BriefSchema,
+    question: z.string().min(1).max(1000).optional(),
+    message: z.string().min(1).max(1000).optional(),
+    history: z.array(z.object({ role: z.enum(['user', 'assistant']), text: z.string() })).optional(),
+    brief: BriefSchema.optional().default({
+        occasion: 'wedding',
+        city: 'Chennai',
+        eventDate: '2027-03-01',
+        guests: 150,
+        budget: 500_000,
+        language: 'en',
+    }),
     context: z.string().max(3000).default(''),
+    planSummary: z.string().max(3000).optional(),
 });
-apiRouter.post('/ask-planner', aiLimiter, async (req, res) => {
+const handlePlannerChat = async (req, res) => {
     const body = ChatBody.safeParse(req.body);
     if (!body.success) {
         res.status(400).json({ error: { code: 'VALIDATION_ERROR' } });
         return;
     }
-    const { question, brief, context } = body.data;
+    const question = body.data.question ?? body.data.message ?? '';
+    const context = body.data.context || body.data.planSummary || '';
+    const { brief } = body.data;
     const hash = await sha256(`chat:${question}:${JSON.stringify(brief)}`);
     const prompt = `
 You are a helpful Indian wedding and events planning assistant.
@@ -168,13 +292,16 @@ Give a practical, warm, helpful answer in ${brief.language}. Include citations t
         cacheKey: hash,
     });
     res.json({ data: result, demo: !process.env['GEMINI_API_KEY'] });
-});
+    return;
+};
+apiRouter.post('/ask-planner', aiLimiter, handlePlannerChat);
+apiRouter.post('/chat', aiLimiter, handlePlannerChat);
 // ── Explain tradeoffs ─────────────────────────────────────────────────────────
 const TradeoffBody = z.object({
-    options: z.array(z.object({ label: z.string(), deltaRupees: z.number() })).max(5),
+    options: z.array(z.object({ label: z.string(), deltaRupees: z.number().optional(), effect: z.string().optional() })).max(5),
     brief: BriefSchema,
 });
-apiRouter.post('/explain-tradeoffs', aiLimiter, async (req, res) => {
+const handleExplainTradeoffs = async (req, res) => {
     const body = TradeoffBody.safeParse(req.body);
     if (!body.success) {
         res.status(400).json({ error: { code: 'VALIDATION_ERROR' } });
@@ -182,14 +309,17 @@ apiRouter.post('/explain-tradeoffs', aiLimiter, async (req, res) => {
     }
     const { options, brief } = body.data;
     const hash = await sha256(`tradeoffs:${JSON.stringify(options)}:${JSON.stringify(brief)}`);
-    const optionText = options.map(o => `${o.label}: ₹${o.deltaRupees}`).join(', ');
+    const optionText = options.map(o => `${o.label}: ${o.deltaRupees !== undefined ? `₹${o.deltaRupees}` : (o.effect ?? '')}`).join(', ');
     const prompt = `
 Explain in plain, warm language (${brief.language}) what these budget adjustment options mean
 for a ${brief.occasion} with ${brief.guests} guests in ${brief.city}.
 Options: ${optionText}. Keep it to 2-3 sentences per option. No jargon.`;
     const result = await geminiCall({ prompt, schema: TradeoffExplainResponseSchema, cacheKey: hash });
     res.json({ data: result, demo: !process.env['GEMINI_API_KEY'] });
-});
+    return;
+};
+apiRouter.post('/explain-tradeoffs', aiLimiter, handleExplainTradeoffs);
+apiRouter.post('/explain-options', aiLimiter, handleExplainTradeoffs);
 // ── 404 ───────────────────────────────────────────────────────────────────────
 apiRouter.use((_req, res) => {
     res.status(404).json({ error: { code: 'NOT_FOUND' } });

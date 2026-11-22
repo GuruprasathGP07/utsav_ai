@@ -74,10 +74,11 @@ app.use((err, _req, res, _next) => {
     logger.error('Unhandled error', { error: String(err) });
     res.status(500).json({ error: { code: 'INTERNAL_ERROR' } });
 });
-if (process.env['NODE_ENV'] !== 'test') {
+if (process.env['NODE_ENV'] !== 'test' && !process.env['VERCEL']) {
     app.listen(PORT, () => {
         logger.info(`UtsavAI server running on port ${PORT}`);
     });
 }
+export default app;
 export { app };
 //# sourceMappingURL=index.js.map

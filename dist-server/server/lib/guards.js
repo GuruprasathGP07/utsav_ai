@@ -15,7 +15,7 @@ export function sameOriginGuard(req, res, next) {
         next();
         return;
     }
-    // Allow requests from same host (Cloud Run internal)
+    // Allow requests from same host (Cloud Run internal or Vercel serverless)
     if (!origin && referer) {
         try {
             const refHost = new URL(referer).host;
@@ -28,15 +28,32 @@ export function sameOriginGuard(req, res, next) {
             // Malformed referer header URL; continue to mandatory origin header check
         }
     }
+    const isSameHost = origin && host ? (() => {
+        try {
+            return new URL(origin).host === host;
+        }
+        catch {
+            return false;
+        }
+    })() : false;
+    const isVercel = origin ? (() => {
+        try {
+            return new URL(origin).hostname.endsWith('.vercel.app');
+        }
+        catch {
+            return false;
+        }
+    })() : false;
+    if (origin && (ALLOWED_ORIGINS.has(origin) || isSameHost || isVercel)) {
+        next();
+        return;
+    }
     if (!origin) {
         res.status(403).json({ error: { code: 'FORBIDDEN', message: 'Missing Origin' } });
         return;
     }
-    if (!ALLOWED_ORIGINS.has(origin)) {
-        res.status(403).json({ error: { code: 'FORBIDDEN', message: 'Origin not allowed' } });
-        return;
-    }
-    next();
+    res.status(403).json({ error: { code: 'FORBIDDEN', message: 'Origin not allowed' } });
+    return;
 }
 /**
  * Enforces JSON Content-Type on POST requests.

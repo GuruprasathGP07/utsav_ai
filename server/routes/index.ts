@@ -70,18 +70,24 @@ If a field cannot be determined, omit it. Never invent prices beyond what the us
   const result = await geminiCall({ prompt, schema: ParseIntakeResponseSchema, cacheKey: hash });
   const data = result ?? fallbackParse(sentence);
   res.json({ data, demo: !process.env['GEMINI_API_KEY'] });
+  return;
 });
 
 // ── Extract quote ─────────────────────────────────────────────────────────────
 const ExtractQuoteBody = z.object({
-  quoteText: z.string().min(1).max(5000),
+  quoteText: z.string().min(1).max(5000).optional(),
+  rawText:   z.string().min(1).max(5000).optional(),
   language:  z.enum(['en','hi','ta','te','kn','ml']).default('en'),
 });
 apiRouter.post('/extract-quote', aiLimiter, async (req: Request, res: Response) => {
   const body = ExtractQuoteBody.safeParse(req.body);
-  if (!body.success) { res.status(400).json({ error: { code: 'VALIDATION_ERROR' } }); return; }
+  if (!body.success || (!body.data.quoteText && !body.data.rawText)) {
+    res.status(400).json({ error: { code: 'VALIDATION_ERROR' } });
+    return;
+  }
 
-  const { quoteText, language } = body.data;
+  const quoteText = body.data.quoteText ?? body.data.rawText ?? '';
+  const { language } = body.data;
   const hash = await sha256(`quote:${quoteText}`);
   const prompt = `
 Extract vendor quote details from the following text. Language context: ${language}.
@@ -92,6 +98,7 @@ cancellationPolicy. Use null for unstated fields. Never invent values.`;
 
   const result = await geminiCall({ prompt, schema: ExtractQuoteResponseSchema, cacheKey: hash });
   res.json({ data: result, demo: !process.env['GEMINI_API_KEY'] });
+  return;
 });
 
 function fallbackIdeas(brief: z.infer<typeof BriefSchema>) {
@@ -176,7 +183,7 @@ function fallbackIdeas(brief: z.infer<typeof BriefSchema>) {
 
 // ── Suggest ideas ─────────────────────────────────────────────────────────────
 const IdeasBody = z.object({ brief: BriefSchema });
-apiRouter.post('/suggest-ideas', aiLimiter, async (req: Request, res: Response) => {
+const handleSuggestIdeas = async (req: Request, res: Response) => {
   const body = IdeasBody.safeParse(req.body);
   if (!body.success) { res.status(400).json({ error: { code: 'VALIDATION_ERROR' } }); return; }
 
@@ -193,7 +200,10 @@ No prices. No vendor names. Keep culturally rooted.`;
   const result = await geminiCall({ prompt, schema: IdeasResponseSchema, cacheKey: hash });
   const data = result ?? fallbackIdeas(brief);
   res.json({ data, demo: !process.env['GEMINI_API_KEY'] });
-});
+  return;
+};
+apiRouter.post('/suggest-ideas', aiLimiter, handleSuggestIdeas);
+apiRouter.post('/generate-ideas', aiLimiter, handleSuggestIdeas);
 
 // ── Generate risks ────────────────────────────────────────────────────────────
 const RisksBody = z.object({ brief: BriefSchema, existingRiskIds: z.array(z.string()).max(20) });
@@ -238,6 +248,7 @@ Each risk: title, reason, severity (1-5), likelihood (1-5), category, backup act
     ],
   };
   res.json({ data, demo: !process.env['GEMINI_API_KEY'] });
+  return;
 });
 
 // ── Plan review ───────────────────────────────────────────────────────────────
@@ -256,19 +267,32 @@ Respond with steps (array of 3 strings) and an optional note. Use only stated fa
 
   const result = await geminiCall({ prompt, schema: PlanReviewResponseSchema, cacheKey: hash });
   res.json({ data: result, demo: !process.env['GEMINI_API_KEY'] });
+  return;
 });
 
 // ── Planner chat ──────────────────────────────────────────────────────────────
 const ChatBody = z.object({
-  question: z.string().min(1).max(1000),
-  brief:    BriefSchema,
-  context:  z.string().max(3000).default(''),
+  question:    z.string().min(1).max(1000).optional(),
+  message:     z.string().min(1).max(1000).optional(),
+  history:     z.array(z.object({ role: z.enum(['user', 'assistant']), text: z.string() })).optional(),
+  brief:       BriefSchema.optional().default({
+    occasion: 'wedding',
+    city: 'Chennai',
+    eventDate: '2027-03-01',
+    guests: 150,
+    budget: 500_000,
+    language: 'en',
+  }),
+  context:     z.string().max(3000).default(''),
+  planSummary: z.string().max(3000).optional(),
 });
-apiRouter.post('/ask-planner', aiLimiter, async (req: Request, res: Response) => {
+const handlePlannerChat = async (req: Request, res: Response) => {
   const body = ChatBody.safeParse(req.body);
   if (!body.success) { res.status(400).json({ error: { code: 'VALIDATION_ERROR' } }); return; }
 
-  const { question, brief, context } = body.data;
+  const question = body.data.question ?? body.data.message ?? '';
+  const context = body.data.context || body.data.planSummary || '';
+  const { brief } = body.data;
   const hash = await sha256(`chat:${question}:${JSON.stringify(brief)}`);
   const prompt = `
 You are a helpful Indian wedding and events planning assistant.
@@ -284,20 +308,23 @@ Give a practical, warm, helpful answer in ${brief.language}. Include citations t
     cacheKey: hash,
   });
   res.json({ data: result, demo: !process.env['GEMINI_API_KEY'] });
-});
+  return;
+};
+apiRouter.post('/ask-planner', aiLimiter, handlePlannerChat);
+apiRouter.post('/chat', aiLimiter, handlePlannerChat);
 
 // ── Explain tradeoffs ─────────────────────────────────────────────────────────
 const TradeoffBody = z.object({
-  options: z.array(z.object({ label: z.string(), deltaRupees: z.number() })).max(5),
+  options: z.array(z.object({ label: z.string(), deltaRupees: z.number().optional(), effect: z.string().optional() })).max(5),
   brief:   BriefSchema,
 });
-apiRouter.post('/explain-tradeoffs', aiLimiter, async (req: Request, res: Response) => {
+const handleExplainTradeoffs = async (req: Request, res: Response) => {
   const body = TradeoffBody.safeParse(req.body);
   if (!body.success) { res.status(400).json({ error: { code: 'VALIDATION_ERROR' } }); return; }
 
   const { options, brief } = body.data;
   const hash = await sha256(`tradeoffs:${JSON.stringify(options)}:${JSON.stringify(brief)}`);
-  const optionText = options.map(o => `${o.label}: ₹${o.deltaRupees}`).join(', ');
+  const optionText = options.map(o => `${o.label}: ${o.deltaRupees !== undefined ? `₹${o.deltaRupees}` : (o.effect ?? '')}`).join(', ');
   const prompt = `
 Explain in plain, warm language (${brief.language}) what these budget adjustment options mean
 for a ${brief.occasion} with ${brief.guests} guests in ${brief.city}.
@@ -305,7 +332,10 @@ Options: ${optionText}. Keep it to 2-3 sentences per option. No jargon.`;
 
   const result = await geminiCall({ prompt, schema: TradeoffExplainResponseSchema, cacheKey: hash });
   res.json({ data: result, demo: !process.env['GEMINI_API_KEY'] });
-});
+  return;
+};
+apiRouter.post('/explain-tradeoffs', aiLimiter, handleExplainTradeoffs);
+apiRouter.post('/explain-options', aiLimiter, handleExplainTradeoffs);
 
 // ── 404 ───────────────────────────────────────────────────────────────────────
 apiRouter.use((_req, res) => {

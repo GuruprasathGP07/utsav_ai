@@ -39,5 +39,48 @@ describe('API Server Integration Tests', () => {
     expect(res.body.data.guests).toBe(300);
     expect(res.body.data.budget).toBe(800_000);
   });
+
+  it('POST /api/suggest-ideas succeeds from vercel origin in demo mode', async () => {
+    const res = await request(app)
+      .post('/api/suggest-ideas')
+      .set('Origin', 'https://utsav-ai-kohl.vercel.app')
+      .set('Content-Type', 'application/json')
+      .send({
+        brief: {
+          occasion: 'wedding',
+          city: 'Chennai',
+          eventDate: '2027-03-01',
+          guests: 150,
+          budget: 500_000,
+          language: 'en',
+        },
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data).toBeDefined();
+    expect(res.body.data.themes).toHaveLength(4);
+    expect(res.body.demo).toBe(true);
+  });
+
+  it('POST /api/generate-ideas alias succeeds and matches suggest-ideas', async () => {
+    const res = await request(app)
+      .post('/api/generate-ideas')
+      .set('Origin', 'https://utsav-ai-kohl.vercel.app')
+      .set('Content-Type', 'application/json')
+      .send({
+        brief: {
+          occasion: 'wedding',
+          city: 'Chennai',
+          eventDate: '2027-03-01',
+          guests: 150,
+          budget: 500_000,
+          language: 'en',
+        },
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data).toBeDefined();
+    expect(res.body.demo).toBe(true);
+  });
 });
 

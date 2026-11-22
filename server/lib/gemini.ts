@@ -96,7 +96,7 @@ export async function geminiCall<S extends z.ZodTypeAny>(
     }
   }
 
-  if (!process.env['GEMINI_API_KEY'] && process.env['NODE_ENV'] !== 'test') {
+  if (!process.env['GEMINI_API_KEY']) {
     logger.info('Gemini API key missing — demo mode');
     return null;
   }

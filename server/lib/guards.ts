@@ -52,8 +52,7 @@ export function sameOriginGuard(req: Request, res: Response, next: NextFunction)
   }
 
   res.status(403).json({ error: { code: 'FORBIDDEN', message: 'Origin not allowed' } });
-
-  next();
+  return;
 }
 
 /**

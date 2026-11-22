@@ -57,17 +57,17 @@ export const apiClient = {
     postJson<ExtractQuoteResponse>('/api/extract-quote', { rawText, categoryHint }),
 
   generateIdeas: (brief: Brief) =>
-    postJson<IdeasResponse>('/api/generate-ideas', { brief }),
+    postJson<IdeasResponse>('/api/suggest-ideas', { brief }),
 
   generateRisks: (brief: Brief, budget: Budget, tasks: ReadonlyArray<Task>, vendors: ReadonlyArray<Vendor>) =>
     postJson<GenerateRisksResponse>('/api/generate-risks', { brief, budget, tasks, vendors }),
 
   explainTradeoffs: (brief: Brief, overage: number, options: Array<{ label: string; effect: string }>) =>
-    postJson<TradeoffExplainResponse>('/api/explain-options', { brief, overage, options }),
+    postJson<TradeoffExplainResponse>('/api/explain-tradeoffs', { brief, overage, options }),
 
   reviewPlan: (brief: Brief, budget: Budget, tasks: ReadonlyArray<Task>, vendors: ReadonlyArray<Vendor>) =>
     postJson<PlanReviewResponse>('/api/review-plan', { brief, budget, tasks, vendors }),
 
   chat: (message: string, history: Array<{ role: 'user' | 'assistant'; text: string }>, planSummary: string) =>
-    postJson<PlannerChatResponse>('/api/chat', { message, history, planSummary }),
+    postJson<PlannerChatResponse>('/api/ask-planner', { question: message, history, context: planSummary }),
 };
