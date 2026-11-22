@@ -17,6 +17,6 @@
     "skipLibCheck": true,
     "sourceMap": true
   },
-  "include": ["server", "src/schemas", "src/engine"],
+  "include": ["server", "api", "src/schemas", "src/engine"],
   "exclude": ["node_modules", "dist", "src/components", "src/pages", "src/styles", "tests", "e2e"]
 }

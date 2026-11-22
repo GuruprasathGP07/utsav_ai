@@ -23,7 +23,7 @@ export function sameOriginGuard(req: Request, res: Response, next: NextFunction)
     return;
   }
 
-  // Allow requests from same host (Cloud Run internal)
+  // Allow requests from same host (Cloud Run internal or Vercel serverless)
   if (!origin && referer) {
     try {
       const refHost = new URL(referer).host;
@@ -33,15 +33,25 @@ export function sameOriginGuard(req: Request, res: Response, next: NextFunction)
     }
   }
 
+  const isSameHost = origin && host ? (() => {
+    try { return new URL(origin).host === host; } catch { return false; }
+  })() : false;
+
+  const isVercel = origin ? (() => {
+    try { return new URL(origin).hostname.endsWith('.vercel.app'); } catch { return false; }
+  })() : false;
+
+  if (origin && (ALLOWED_ORIGINS.has(origin) || isSameHost || isVercel)) {
+    next();
+    return;
+  }
+
   if (!origin) {
     res.status(403).json({ error: { code: 'FORBIDDEN', message: 'Missing Origin' } });
     return;
   }
 
-  if (!ALLOWED_ORIGINS.has(origin)) {
-    res.status(403).json({ error: { code: 'FORBIDDEN', message: 'Origin not allowed' } });
-    return;
-  }
+  res.status(403).json({ error: { code: 'FORBIDDEN', message: 'Origin not allowed' } });
 
   next();
 }

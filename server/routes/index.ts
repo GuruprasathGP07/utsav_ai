@@ -94,6 +94,86 @@ cancellationPolicy. Use null for unstated fields. Never invent values.`;
   res.json({ data: result, demo: !process.env['GEMINI_API_KEY'] });
 });
 
+function fallbackIdeas(brief: z.infer<typeof BriefSchema>) {
+  const isWedding = brief.occasion === 'wedding' || brief.occasion === 'engagement';
+  const isBirthday = brief.occasion.startsWith('birthday');
+
+  if (isWedding) {
+    return {
+      themes: [
+        'Royal Marigold & Temple Jasmine',
+        'Traditional Kanchipuram Elegance',
+        'Sunset Sangeet & Folk Heritage',
+        'Pastel Floral Canopies with Brass Diya Accents',
+      ],
+      activities: [
+        'Traditional Oonjal & Folk Welcome Songs',
+        'Live Classical Carnatic / Hindustani Ensemble',
+        'Customized Mehendi & Henna Art Lounge',
+        'Interactive Kolam / Rangoli Welcome Demonstration',
+      ],
+      foodStyle: [
+        'Traditional Multi-course Festive Feast on Banana Leaves',
+        'Live Dosa, Chaat & Regional Specialty Counters',
+        'Signature Filter Coffee & Chai Tasting Station',
+        'Grand Mithai Bar featuring Regional Delicacies',
+      ],
+      personalTouches: [
+        'Handcrafted Thamboolam / Return Gift Hampers with Brass Lamps',
+        'Customized Welcome Cards with Family Monogram',
+        'Floral Entrance Toran woven with Fresh Marigolds',
+      ],
+      invitationLine: `With hearts full of joy and gratitude, we warmly invite you to celebrate this auspicious wedding with our family in ${brief.city}.`,
+    };
+  }
+
+  if (isBirthday) {
+    return {
+      themes: [
+        'Enchanted Carnival of Colors',
+        'Starlit Bollywood Disco Fiesta',
+        'Festive Balloon Canopy & Golden Sparkles',
+      ],
+      activities: [
+        'Interactive Magic & Illusion Showcase',
+        'Live Caricature & Pottery Workshop',
+        'Curated Photo Booth with Festive Props',
+      ],
+      foodStyle: [
+        'Artisanal Finger Foods & Fusion Appetizers',
+        'Live Woodfired Pizza & Street-food Counters',
+        'Custom Birthday Dessert Table & Gourmet Cupcakes',
+      ],
+      personalTouches: [
+        'Personalized Keepsake Return Goodie Bags',
+        'Handwritten Memory Message Board for Guests',
+      ],
+      invitationLine: `Join us for an unforgettable celebration of joy, laughter, and milestones in ${brief.city}!`,
+    };
+  }
+
+  return {
+    themes: [
+      'Traditional Cultural Heritage & Golden Diyas',
+      'Community Harmony & Festive Floral Displays',
+    ],
+    activities: [
+      'Community Cultural Performances & Classical Music',
+      'Folk Dance Demonstrations (Garba / Dandiya / Kolattam)',
+      'Community Feasting & Prasadam Distribution',
+    ],
+    foodStyle: [
+      'Wholesome Festive Prasadam & Regional Delicacies',
+      'Traditional Sweet & Savory Snack Spread',
+    ],
+    personalTouches: [
+      'Eco-friendly Clay Diyas & Handcrafted Welcome Gifts',
+      'Community Remembrance & Blessing Station',
+    ],
+    invitationLine: `We warmly welcome you and your family to join us in commemorating this joyful celebration in ${brief.city}.`,
+  };
+}
+
 // ── Suggest ideas ─────────────────────────────────────────────────────────────
 const IdeasBody = z.object({ brief: BriefSchema });
 apiRouter.post('/suggest-ideas', aiLimiter, async (req: Request, res: Response) => {
@@ -111,7 +191,8 @@ Provide themes, activities, foodStyle, personalTouches, invitationLine.
 No prices. No vendor names. Keep culturally rooted.`;
 
   const result = await geminiCall({ prompt, schema: IdeasResponseSchema, cacheKey: hash });
-  res.json({ data: result, demo: !process.env['GEMINI_API_KEY'] });
+  const data = result ?? fallbackIdeas(brief);
+  res.json({ data, demo: !process.env['GEMINI_API_KEY'] });
 });
 
 // ── Generate risks ────────────────────────────────────────────────────────────
@@ -130,7 +211,33 @@ Suggest up to 3 ADDITIONAL contextual risks not already covered. Focus on local/
 Each risk: title, reason, severity (1-5), likelihood (1-5), category, backup action.`;
 
   const result = await geminiCall({ prompt, schema: GenerateRisksResponseSchema, cacheKey: hash });
-  res.json({ data: result, demo: !process.env['GEMINI_API_KEY'] });
+  const data = result ?? {
+    risks: [
+      {
+        title: `Peak celebration vendor demand in ${brief.city}`,
+        reason: 'High demand on auspicious dates can lead to last-minute vendor price inflation or scheduling overlap.',
+        severity: 3,
+        likelihood: 4,
+        category: 'vendor',
+        backup: {
+          action: 'Reconfirm vendor commitments in writing with signed SLA 30 days prior',
+          dueDaysBefore: 30,
+        },
+      },
+      {
+        title: 'Guest headcount fluctuation',
+        reason: 'Indian gatherings typically experience ±15% variance between RSVPs and actual attendees on the day.',
+        severity: 3,
+        likelihood: 3,
+        category: 'guest',
+        backup: {
+          action: 'Agree on a 10% dynamic buffer plate tier with the caterer',
+          dueDaysBefore: 14,
+        },
+      },
+    ],
+  };
+  res.json({ data, demo: !process.env['GEMINI_API_KEY'] });
 });
 
 // ── Plan review ───────────────────────────────────────────────────────────────

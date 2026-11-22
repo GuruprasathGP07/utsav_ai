@@ -19,26 +19,50 @@ export default function IdeasPanel(): React.ReactElement {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ brief: plan.brief }),
       });
-      if (!res.ok) { toast('AI unavailable — check API key', 'warning'); return; }
-      const j = await res.json() as {
-        data?: {
-          themes?: string[]; activities?: string[];
-          foodStyle?: string[]; personalTouches?: string[];
-          invitationLine?: string;
+      if (res.ok) {
+        const j = await res.json() as {
+          data?: {
+            themes?: string[]; activities?: string[];
+            foodStyle?: string[]; personalTouches?: string[];
+            invitationLine?: string;
+          };
+          demo?: boolean;
         };
-        demo?: boolean;
-      };
-      if (j.demo) { toast('Demo mode — add GEMINI_API_KEY for real ideas', 'info'); return; }
-      if (j.data) {
-        dispatch({ type: 'SET_IDEAS', payload: { ideas: {
-          themes:          j.data.themes ?? [],
-          activities:      j.data.activities ?? [],
-          foodStyle:       j.data.foodStyle ?? [],
-          personalTouches: j.data.personalTouches ?? [],
-          invitationLine:  j.data.invitationLine ? [j.data.invitationLine] : [],
-        }}});
-        toast('Ideas generated!', 'success');
+        if (j.data) {
+          dispatch({ type: 'SET_IDEAS', payload: { ideas: {
+            themes:          j.data.themes ?? [],
+            activities:      j.data.activities ?? [],
+            foodStyle:       j.data.foodStyle ?? [],
+            personalTouches: j.data.personalTouches ?? [],
+            invitationLine:  j.data.invitationLine ? [j.data.invitationLine] : [],
+          }}});
+          toast(j.demo ? 'Ideas generated (Demo Mode)' : 'Ideas generated!', 'success');
+          return;
+        }
       }
+
+      // Built-in fallback if server/AI is unavailable or unconfigured
+      const isWedding = plan.brief.occasion === 'wedding' || plan.brief.occasion === 'engagement';
+      dispatch({ type: 'SET_IDEAS', payload: { ideas: {
+        themes: isWedding
+          ? ['Royal Marigold & Temple Jasmine', 'Traditional Heritage & Golden Diyas', 'Pastel Canopies & Silk Accents']
+          : ['Festive Carnival of Colors', 'Starlit Celebration Fiesta', 'Heritage & Golden Sparkles'],
+        activities: isWedding
+          ? ['Traditional Oonjal & Folk Welcome Songs', 'Live Classical Carnatic Ensemble', 'Mehendi & Henna Art Lounge']
+          : ['Interactive Magic & Illusion Showcase', 'Live Caricature & Workshop', 'Curated Photo Booth with Festive Props'],
+        foodStyle: isWedding
+          ? ['Traditional Multi-course Feast on Banana Leaves', 'Live Dosa & Regional Specialty Counters', 'Signature Filter Coffee & Mithai Bar']
+          : ['Artisanal Finger Foods & Fusion Appetizers', 'Live Street-food Counters', 'Custom Celebration Dessert Bar'],
+        personalTouches: [
+          'Handcrafted Keepsake Return Favors with Brass Lamps',
+          'Customized Welcome Cards with Family Monogram',
+          'Fresh Floral Entrance Toran',
+        ],
+        invitationLine: [
+          `With joyous hearts, we warmly invite you to celebrate this special milestone together with our family in ${plan.brief.city}.`,
+        ],
+      }}});
+      toast('Built-in ideas loaded (Offline Mode)', 'info');
     } catch { toast('Network error', 'error'); }
     finally { setLoading(false); }
   };

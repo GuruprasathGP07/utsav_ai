@@ -88,10 +88,11 @@ app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
   res.status(500).json({ error: { code: 'INTERNAL_ERROR' } });
 });
 
-if (process.env['NODE_ENV'] !== 'test') {
+if (process.env['NODE_ENV'] !== 'test' && !process.env['VERCEL']) {
   app.listen(PORT, () => {
     logger.info(`UtsavAI server running on port ${PORT}`);
   });
 }
 
+export default app;
 export { app };
