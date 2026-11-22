@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   ArrowRight, Sparkles, Shield, Clock, IndianRupee,
   Flame, Leaf,
@@ -356,14 +356,12 @@ export default function Landing(): React.ReactElement {
             </p>
 
             {/* Hero input */}
-            <form onSubmit={handleSubmit} aria-label="Event description form"
-              style={{ position: 'relative', maxWidth: '700px', margin: '0 auto var(--sp-6)' }}>
+            <form onSubmit={handleSubmit} aria-label="Event description form" className="hero-input-form">
               <label htmlFor="event-sentence" className="sr-only">
                 {t('landing.how1Title')}
               </label>
-              <AnimatePresence mode="wait">
-                <motion.input
-                  key={placeholderIdx}
+              <div className="hero-input-wrapper">
+                <input
                   id="event-sentence"
                   ref={inputRef}
                   type="text"
@@ -371,24 +369,19 @@ export default function Landing(): React.ReactElement {
                   onChange={e => setSentence(e.target.value)}
                   placeholder={PLACEHOLDER_BRIEFS[placeholderIdx]}
                   disabled={loading}
-                  initial={{ opacity: 0.7 }}
-                  animate={{ opacity: 1 }}
                   className="hero-input"
-                  style={{ paddingRight: '170px' }}
+                  autoComplete="off"
+                  spellCheck="false"
                 />
-              </AnimatePresence>
-              <button
-                type="submit"
-                disabled={loading || !sentence.trim()}
-                className="btn btn-primary"
-                style={{
-                  position: 'absolute', right: 'var(--sp-2)', top: '50%',
-                  transform: 'translateY(-50%)',
-                }}
-                aria-label="Create celebration plan"
-              >
-                {loading ? t('landing.planning') : <>{t('landing.heroCTA')} <ArrowRight size={16} aria-hidden="true" /></>}
-              </button>
+                <button
+                  type="submit"
+                  disabled={loading || !sentence.trim()}
+                  className="btn btn-primary hero-submit-btn"
+                  aria-label="Create celebration plan"
+                >
+                  {loading ? t('landing.planning') : <>{t('landing.heroCTA')} <ArrowRight size={16} aria-hidden="true" /></>}
+                </button>
+              </div>
             </form>
 
             {/* Language Selection Chips */}

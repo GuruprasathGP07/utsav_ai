@@ -337,23 +337,74 @@ a:hover { color: var(--peacock-mid); }
 }
 
 /* ── Hero invitation input ────────────────────────────────────────────────── */
-.hero-input {
-  font-family: var(--font-display);
-  font-size: clamp(var(--text-lg), 3vw, var(--text-2xl));
-  font-style: italic;
-  padding: var(--sp-5) var(--sp-6);
-  padding-right: 160px;
-  border: none;
-  border-bottom: 2.5px solid var(--marigold);
-  border-radius: var(--r-lg) var(--r-lg) 0 0;
-  background: var(--paper-2);
-  box-shadow: var(--shadow-md);
-  width: 100%;
-  transition: box-shadow var(--dur-base);
+.hero-input-form {
+  position: relative;
+  max-width: 720px;
+  margin: 0 auto var(--sp-6);
 }
-.hero-input:focus {
+
+.hero-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border-radius: var(--r-2xl);
+  padding: 6px;
+  background: linear-gradient(
+    135deg,
+    rgba(242, 167, 27, 0.16) 0%,
+    rgba(179, 38, 30, 0.12) 40%,
+    rgba(15, 92, 92, 0.14) 75%,
+    rgba(242, 167, 27, 0.10) 100%
+  ), var(--paper-2);
+  border: 1.5px solid var(--line-strong);
+  box-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(242, 167, 27, 0.18);
+  backdrop-filter: blur(10px);
+  transition: all var(--dur-base) ease;
+}
+
+.hero-input-wrapper:focus-within {
+  border-color: var(--marigold);
+  box-shadow: 0 0 0 4px rgba(242, 167, 27, 0.25), 0 8px 32px rgba(0, 0, 0, 0.5);
+  background: linear-gradient(
+    135deg,
+    rgba(242, 167, 27, 0.22) 0%,
+    rgba(179, 38, 30, 0.15) 40%,
+    rgba(15, 92, 92, 0.18) 75%,
+    rgba(242, 167, 27, 0.14) 100%
+  ), var(--paper-3);
+}
+
+.hero-input {
+  flex: 1;
+  font-family: var(--font-ui);
+  font-size: clamp(var(--text-base), 2.2vw, var(--text-lg));
+  font-weight: 500;
+  font-style: normal;
+  color: var(--ink);
+  padding: var(--sp-4) var(--sp-5);
+  padding-right: 180px;
+  border: none;
   outline: none;
-  box-shadow: var(--shadow-marigold), var(--shadow-lg);
+  background: transparent;
+  width: 100%;
+}
+
+.hero-input::placeholder {
+  font-family: var(--font-display);
+  font-style: italic;
+  color: var(--ink-muted);
+  opacity: 0.85;
+}
+
+.hero-submit-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-radius: var(--r-xl);
+  padding: var(--sp-3) var(--sp-5);
+  box-shadow: 0 2px 12px rgba(179, 38, 30, 0.4);
+  white-space: nowrap;
 }
 
 /* ── Invitation card ──────────────────────────────────────────────────────── */
